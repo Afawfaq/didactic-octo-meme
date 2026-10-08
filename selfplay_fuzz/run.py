@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import json
 
-from .engine import FuzzerConfig, FuzzerEngine
-from .genetic_repair import GeneticRepair
+try:
+    from .engine import FuzzerConfig, FuzzerEngine
+    from .genetic_repair import GeneticRepair
+except ImportError:  # allow running as a script from the package directory
+    from engine import FuzzerConfig, FuzzerEngine
+    from genetic_repair import GeneticRepair
 
 
 def run_pipeline() -> dict:

@@ -1,4 +1,7 @@
 import unittest
+import pathlib
+import subprocess
+import sys
 
 from selfplay_fuzz.engine import FuzzerConfig, FuzzerEngine
 from selfplay_fuzz.genetic_repair import GeneticRepair
@@ -6,6 +9,16 @@ from selfplay_fuzz.run import run_pipeline
 
 
 class PipelineTests(unittest.TestCase):
+    def test_engine_module_runs_as_script(self):
+        repo_root = pathlib.Path(__file__).resolve().parents[1]
+        result = subprocess.run(
+            [sys.executable, str(repo_root / "selfplay_fuzz" / "engine.py")],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, msg=result.stderr)
+
     def test_guided_fuzzer_runs_and_collects_metrics(self):
         engine = FuzzerEngine(FuzzerConfig(iterations=400, use_learned_guidance=True))
         metrics = engine.run()
