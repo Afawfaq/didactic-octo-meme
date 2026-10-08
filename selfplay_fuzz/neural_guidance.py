@@ -3,7 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import random
 
-from .mutators import MUTATORS
+try:
+    from .mutators import MUTATORS
+except ImportError:  # allow running as a script from the package directory
+    from mutators import MUTATORS
 
 
 @dataclass

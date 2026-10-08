@@ -4,9 +4,14 @@ from dataclasses import dataclass, field
 import random
 import time
 
-from .mutators import MUTATORS, mutate
-from .neural_guidance import LearnedMutationModel
-from .target_json import evaluate_input
+try:
+    from .mutators import MUTATORS, mutate
+    from .neural_guidance import LearnedMutationModel
+    from .target_json import evaluate_input
+except ImportError:  # allow running as a script from the package directory
+    from mutators import MUTATORS, mutate
+    from neural_guidance import LearnedMutationModel
+    from target_json import evaluate_input
 
 
 @dataclass
