@@ -12,8 +12,11 @@ python -m selfplay_fuzz.run
 
 This prints JSON including:
 - baseline vs guided coverage
+- coverage-over-time samples
 - exec/s
 - time-to-first-crash
+- mutation success telemetry by operator
+- crash class counts and baseline-vs-guided comparison summary
 - corpus damage/recovery metrics (30% deletion)
 - repair search held-out validation score
 

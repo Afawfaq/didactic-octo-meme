@@ -11,6 +11,8 @@ class PipelineTests(unittest.TestCase):
         metrics = engine.run()
         self.assertGreater(metrics.exec_per_sec, 0)
         self.assertGreater(metrics.coverage_over_time[-1][1], 0)
+        self.assertGreater(len(metrics.coverage_over_time), 0)
+        self.assertIn("bit_flip", metrics.mutation_success_by_op)
 
     def test_damage_and_repair_contract(self):
         engine = FuzzerEngine(FuzzerConfig(iterations=400, use_learned_guidance=True))
@@ -29,6 +31,8 @@ class PipelineTests(unittest.TestCase):
         report = run_pipeline()
         self.assertIn("direction_a", report)
         self.assertIn("baseline", report["direction_a"])
+        self.assertIn("comparison", report["direction_a"])
+        self.assertIn("coverage_over_time", report["direction_a"]["guided"])
         self.assertIn("direction_b", report)
 
 

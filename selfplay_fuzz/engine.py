@@ -21,6 +21,8 @@ class RunMetrics:
     exec_per_sec: float = 0.0
     time_to_first_crash: float | None = None
     unique_crashes: int = 0
+    mutation_success_by_op: dict[str, dict[str, int]] = field(default_factory=dict)
+    crash_classes: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass
@@ -30,6 +32,7 @@ class FuzzerConfig:
     use_learned_guidance: bool = False
     self_prune_every: int = 250
     self_diagnose_window: int = 200
+    coverage_sample_every: int = 100
 
 
 class FuzzerEngine:
@@ -49,6 +52,7 @@ class FuzzerEngine:
         self.op_rewards = {m: 1.0 for m in MUTATORS}
         self.last_new_edge_iter = 0
         self.diagnosis_events: list[str] = []
+        self.crash_classes: dict[str, int] = {}
 
         for seed in self.corpus:
             result = evaluate_input(seed.data)
@@ -89,12 +93,17 @@ class FuzzerEngine:
         if signature in self.crash_signatures:
             return False
         self.crash_signatures.add(signature)
+        crash_class = signature.split(":", 1)[0]
+        self.crash_classes[crash_class] = self.crash_classes.get(crash_class, 0) + 1
         return True
 
     def run(self, iterations: int | None = None) -> RunMetrics:
         limit = iterations or self.config.iterations
         start = time.time()
         first_crash_at = None
+        coverage_samples: list[tuple[int, int]] = []
+        op_attempts = {m: 0 for m in MUTATORS}
+        op_success = {m: 0 for m in MUTATORS}
 
         for i in range(1, limit + 1):
             seed = self._choose_seed()
@@ -102,6 +111,7 @@ class FuzzerEngine:
 
             op = self.model.choose_op(self.rnd) if self.config.use_learned_guidance else self._ucb1_op()
             focus = self.model.choose_focus(len(seed.data), self.rnd) if self.config.use_learned_guidance else None
+            op_attempts[op] += 1
 
             child = mutate(seed.data, op, focus, corpus_bytes, self.rnd)
             result = evaluate_input(child)
@@ -114,6 +124,7 @@ class FuzzerEngine:
                 self.corpus.append(Seed(child, result.edges))
                 self.hall_of_fame.append(child)
                 self.last_new_edge_iter = i
+                op_success[op] += 1
 
             if result.crashed and result.crash_signature and self._triage(result.crash_signature):
                 if first_crash_at is None:
@@ -134,12 +145,21 @@ class FuzzerEngine:
             if i % 100 == 0:
                 self.corpus.sort(key=lambda s: len(s.edges), reverse=True)
 
+            if i % self.config.coverage_sample_every == 0:
+                coverage_samples.append((i, len(self.global_edges)))
+
         elapsed = max(time.time() - start, 1e-6)
+        if not coverage_samples or coverage_samples[-1][0] != limit:
+            coverage_samples.append((limit, len(self.global_edges)))
         return RunMetrics(
-            coverage_over_time=[(limit, len(self.global_edges))],
+            coverage_over_time=coverage_samples,
             exec_per_sec=limit / elapsed,
             time_to_first_crash=first_crash_at,
             unique_crashes=len(self.crash_signatures),
+            mutation_success_by_op={
+                op: {"attempts": op_attempts[op], "successes": op_success[op]} for op in MUTATORS
+            },
+            crash_classes=dict(self.crash_classes),
         )
 
     def damage_and_repair(self, damage_ratio: float = 0.3, max_iters: int = 1200) -> dict[str, float | int | bool]:

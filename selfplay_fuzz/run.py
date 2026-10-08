@@ -20,15 +20,28 @@ def run_pipeline() -> dict:
         "direction_a": {
             "baseline": {
                 "coverage": baseline.coverage_over_time[-1][1],
+                "coverage_over_time": baseline.coverage_over_time,
                 "exec_per_sec": round(baseline.exec_per_sec, 2),
                 "time_to_first_crash": baseline.time_to_first_crash,
                 "unique_crashes": baseline.unique_crashes,
+                "mutation_success_by_op": baseline.mutation_success_by_op,
+                "crash_classes": baseline.crash_classes,
             },
             "guided": {
                 "coverage": guided.coverage_over_time[-1][1],
+                "coverage_over_time": guided.coverage_over_time,
                 "exec_per_sec": round(guided.exec_per_sec, 2),
                 "time_to_first_crash": guided.time_to_first_crash,
                 "unique_crashes": guided.unique_crashes,
+                "mutation_success_by_op": guided.mutation_success_by_op,
+                "crash_classes": guided.crash_classes,
+            },
+            "comparison": {
+                "coverage_gain": guided.coverage_over_time[-1][1] - baseline.coverage_over_time[-1][1],
+                "exec_per_sec_ratio": round(
+                    guided.exec_per_sec / baseline.exec_per_sec if baseline.exec_per_sec else 0.0, 3
+                ),
+                "crash_gain": guided.unique_crashes - baseline.unique_crashes,
             },
             "damage_repair": repair_stats,
             "diagnosis_events": guided_engine.diagnosis_events,
