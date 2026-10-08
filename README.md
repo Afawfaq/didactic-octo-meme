@@ -10,6 +10,12 @@ Prototype implementation of:
 python -m selfplay_fuzz.run
 ```
 
+Or run directly from `/home/runner/work/didactic-octo-meme/didactic-octo-meme/selfplay_fuzz`:
+
+```bash
+py run.py
+```
+
 This prints JSON including:
 - baseline vs guided coverage
 - coverage-over-time samples
