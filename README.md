@@ -20,5 +20,5 @@ This prints JSON including:
 ## Test
 
 ```bash
-python -m pytest -q
+python -m unittest discover -s tests -q
 ```

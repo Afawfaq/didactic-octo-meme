@@ -39,7 +39,7 @@ def run_pipeline() -> dict:
             "generations": repair.generations,
             "best_train_score": repair.best_train_score,
             "heldout_score": repair.heldout_score,
-            "candidate_order": repair.candidate_order,
+            "candidate": repair.candidate,
         },
     }
 

@@ -20,54 +20,54 @@ class PatchResult:
     generations: int
     best_train_score: int
     heldout_score: int
-    candidate_order: list[int]
+    candidate: dict[str, str]
 
 
 class GeneticRepair:
     def __init__(self, seed: int = 13):
         self.rnd = random.Random(seed)
-        self.base_order = [0, 1, 2]  # statement order for divisibility checks after fizzbuzz
+        self.base_candidate = {"3": "buzz", "5": "fizz"}
         self.training = [(3, "fizz"), (5, "buzz"), (2, "other"), (15, "fizzbuzz")]
         self.heldout = [(6, "fizz"), (10, "buzz"), (30, "fizzbuzz"), (7, "other")]
 
-    def _run_candidate(self, order: list[int], n: int) -> str:
-        checks = [(3, "buzz"), (5, "fizz"), (15, "fizzbuzz")]
+    def _run_candidate(self, candidate: dict[str, str], n: int) -> str:
         if n % 15 == 0:
             return "fizzbuzz"
-        for idx in order:
-            d, out = checks[idx]
-            if n % d == 0:
-                return out
+        if n % 3 == 0:
+            return candidate["3"]
+        if n % 5 == 0:
+            return candidate["5"]
         return "other"
 
-    def _score(self, order: list[int], cases: list[tuple[int, str]]) -> int:
-        return sum(1 for n, expected in cases if self._run_candidate(order, n) == expected)
+    def _score(self, candidate: dict[str, str], cases: list[tuple[int, str]]) -> int:
+        return sum(1 for n, expected in cases if self._run_candidate(candidate, n) == expected)
 
-    def _mutate(self, order: list[int]) -> list[int]:
-        cand = order[:]
-        i, j = self.rnd.sample(range(len(cand)), 2)
-        cand[i], cand[j] = cand[j], cand[i]
+    def _mutate(self, candidate: dict[str, str]) -> dict[str, str]:
+        cand = dict(candidate)
+        if self.rnd.random() < 0.5:
+            cand["3"], cand["5"] = cand["5"], cand["3"]
+        else:
+            key = self.rnd.choice(["3", "5"])
+            cand[key] = self.rnd.choice(["fizz", "buzz"])
         return cand
 
-    def search(self, generations: int = 80, population: int = 10) -> PatchResult:
-        pop = [self.base_order[:]]
-        for _ in range(population - 1):
-            cand = self.base_order[:]
-            self.rnd.shuffle(cand)
-            pop.append(cand)
+    def search(self, generations: int = 40, population: int = 8) -> PatchResult:
+        pop = [dict(self.base_candidate)]
+        while len(pop) < population:
+            pop.append(self._mutate(self.base_candidate))
 
         best = pop[0]
         best_score = self._score(best, self.training)
 
         for gen in range(1, generations + 1):
-            scored = sorted(((self._score(c, self.training), c) for c in pop), reverse=True)
+            scored = sorted(((self._score(c, self.training), c) for c in pop), key=lambda x: x[0], reverse=True)
             best_score, best = scored[0]
             if best_score == len(self.training):
                 heldout = self._score(best, self.heldout)
                 return PatchResult(True, gen, best_score, heldout, best)
 
-            next_pop = [best]
-            elites = [c for _, c in scored[:3]]
+            elites = [c for _, c in scored[:2]]
+            next_pop = elites[:]
             while len(next_pop) < population:
                 parent = self.rnd.choice(elites)
                 next_pop.append(self._mutate(parent))
